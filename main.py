@@ -5,7 +5,7 @@ from threading import Thread
 import discord
 from discord.ext import commands
 
-# 1. Настройка Flask
+# Настройка Flask
 app = Flask('')
 
 @app.route('/')
@@ -13,16 +13,10 @@ def home():
     return "Бот работает!"
 
 def run_web_server():
-    port = int(os.environ.get("PORT", 10000))  # Render использует порт 10000 по умолчанию
+    port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
 
-# Функция для запуска Flask в отдельном фоновом потоке
-def keep_alive():
-    t = Thread(target=run_web_server)
-    t.daemon = True
-    t.start()
-
-# 2. Настройка Дискорд-бота
+# Настройка Дискорд-бота
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -35,16 +29,27 @@ async def on_ready():
 async def ping(ctx):
     await ctx.send("Pong!")
 
-# 3. Главная точка входа
-if __name__ == "__main__":
-    # Сначала запускаем веб-сервер в фоне, чтобы Render был доволен
-    keep_alive()
+# Асинхронный запуск всего вместе
+async def main():
+    # Запускаем веб-сервер в отдельном потоке
+    t = Thread(target=run_web_server)
+    t.daemon = True
+    t.start()
     print("=== Фоновый веб-сервер запущен ===")
     
-    # Сразу после этого запускаем Дискорд-бота в основном потоке
+    # Берем и очищаем токен
     token = os.environ.get("DISCORD_TOKEN")
-    if token:
-        token = token.strip().replace('"', '').replace("'", "")
-        bot.run(token)
-    else:
+    if not token:
         print("ОШИБКА: Токен не найден в Environment Variables!")
+        return
+
+    token = token.strip().replace('"', '').replace("'", "")
+    
+    # Запускаем бота
+    try:
+        await bot.start(token)
+    except Exception as e:
+        print(f"Ошибка внутри bot.start: {e}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
