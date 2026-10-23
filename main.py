@@ -5,16 +5,22 @@ from threading import Thread
 import discord
 from discord.ext import commands
 
-# 1. Веб-сервер "заглушка" для Render
+# 1. Настройка Flask
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "Бот запущен!"
+    return "Бот работает!"
 
-def run():
-    port = int(os.environ.get("PORT", 8080))
+def run_web_server():
+    port = int(os.environ.get("PORT", 10000))  # Render использует порт 10000 по умолчанию
     app.run(host='0.0.0.0', port=port)
+
+# Функция для запуска Flask в отдельном фоновом потоке
+def keep_alive():
+    t = Thread(target=run_web_server)
+    t.daemon = True
+    t.start()
 
 # 2. Настройка Дискорд-бота
 intents = discord.Intents.default()
@@ -23,27 +29,22 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f"=== БОТ УСПЕШНО В СЕТИ: {bot.user} ===")
+    print(f"=== ОТЛИЧНО! БОТ АВТОРИЗОВАН: {bot.user} ===")
 
 @bot.command()
 async def ping(ctx):
     await ctx.send("Pong!")
 
-# 3. Чистый запуск в правильном порядке
-def keep_alive():
-    t = Thread(target=run)
-    t.daemon = True
-    t.start()
-
+# 3. Главная точка входа
 if __name__ == "__main__":
-    keep_alive()  # Сначала включаем веб-сервер
+    # Сначала запускаем веб-сервер в фоне, чтобы Render был доволен
+    keep_alive()
+    print("=== Фоновый веб-сервер запущен ===")
     
-    # Берем токен из настроек Render
+    # Сразу после этого запускаем Дискорд-бота в основном потоке
     token = os.environ.get("DISCORD_TOKEN")
-    
     if token:
-        # Убираем возможные случайные пробелы и кавычки из переменной окружения
         token = token.strip().replace('"', '').replace("'", "")
         bot.run(token)
     else:
-        print("КРИТИЧЕСКАЯ ОШИБКА: Токен не найден в Environment Variables!")
+        print("ОШИБКА: Токен не найден в Environment Variables!")
