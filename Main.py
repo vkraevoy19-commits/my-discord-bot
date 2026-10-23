@@ -1,27 +1,21 @@
 import discord
 from discord.ext import commands
-import os
 
-# Налаштовуємо права (intents) для бота
+# Настраиваем доступы
 intents = discord.Intents.default()
-intents.message_content = True  # Щоб бот міг читати повідомлення
+intents.message_content = True
 
-# Створюємо самого бота з префіксом "!" (можеш змінити на будь-який інший)
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Проста подія, яка покаже в логах Render, що бот увімкнувся
+# Событие готовности бота
 @bot.event
 async def on_ready():
-    print(f"Бот {bot.user.name} успішно запущений і готовий до роботи!")
+    print(f"Бот {bot.user} успешно запущен!")
 
-# Тестова команда: якщо написати !hello, бот відповість
+# Простая команда !ping
 @bot.command()
-async def hello(ctx):
-    await ctx.send("Привіт! Я працюю на Render!")
+async def ping(ctx):
+    await ctx.send("Pong!")
 
-# Запуск бота через твій токен
-token = os.environ.get("DISCORD_TOKEN")
-if token:
-    bot.run(token)
-else:
-    print("Помилка: DISCORD_TOKEN не знайдено в налаштуваннях Render!")
+# Запуск бота (вместо 'ВАШ_ТОКЕН' вставьте скопированный токен из Шага 2)
+bot.run('ВАШ_ТОКЕН')
