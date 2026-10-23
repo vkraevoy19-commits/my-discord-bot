@@ -5,48 +5,45 @@ from threading import Thread
 import discord
 from discord.ext import commands
 
-# 1. Настройка веб-сервера Flask для Render
+# 1. Веб-сервер "заглушка" для Render
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "Бот работает 24/7!"
+    return "Бот запущен!"
 
-def run_web_server():
+def run():
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
 
-def keep_alive():
-    t = Thread(target=run_web_server)
-    t.daemon = True  # Фоновый поток
-    t.start()
-
-# 2. Настройка самого Дискорд-бота
+# 2. Настройка Дискорд-бота
 intents = discord.Intents.default()
-intents.message_content = True  # Не забудьте включить тумблеры в Discord Developer Portal!
+intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f"=== Успешный запуск! Бот авторизован как {bot.user} ===")
+    print(f"=== БОТ УСПЕШНО В СЕТИ: {bot.user} ===")
 
 @bot.command()
 async def ping(ctx):
     await ctx.send("Pong!")
 
-# 3. Главная функция запуска
-async def main():
-    keep_alive()  # Запускаем сайт-заглушку
-    token = os.environ.get("DISCORD_TOKEN")  # Берем токен из настроек Render
-    
-    if not token:
-        print("ОШИБКА: Переменная DISCORD_TOKEN не найдена в настройках Render!")
-        return
-
-    try:
-        await bot.start(token)
-    except Exception as e:
-        print(f"Ошибка при запуске Дискорд-бота: {e}")
+# 3. Чистый запуск в правильном порядке
+def keep_alive():
+    t = Thread(target=run)
+    t.daemon = True
+    t.start()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    keep_alive()  # Сначала включаем веб-сервер
+    
+    # Берем токен из настроек Render
+    token = os.environ.get("DISCORD_TOKEN")
+    
+    if token:
+        # Убираем возможные случайные пробелы и кавычки из переменной окружения
+        token = token.strip().replace('"', '').replace("'", "")
+        bot.run(token)
+    else:
+        print("КРИТИЧЕСКАЯ ОШИБКА: Токен не найден в Environment Variables!")
